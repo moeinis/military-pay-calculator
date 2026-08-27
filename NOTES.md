@@ -8,6 +8,10 @@ Internal reference for updating and maintaining the Military Take-Home Pay Estim
 | --- | --- |
 | `index.html` | The entire app — UI, styling, and calculation logic in one file. |
 | `bah-data.js` | 2026 BAH rate tables (338 housing areas). Loaded by `index.html` via `<script src>`. Must sit in the same folder. |
+| `test.js` | Dependency-free calculation-engine test suite (198 checks). |
+| `test-dom.js` | Browser-DOM integration test suite (39 checks). |
+| `package.json` / `package-lock.json` | Reproducible Node.js test scripts and pinned development dependencies. |
+| `.github/workflows/test.yml` | Runs all 237 automated checks on pushes and pull requests. |
 | `README.md` | Public overview. |
 | `LICENSE` | MIT. |
 | `NOTES.md` | This file. |
@@ -86,9 +90,8 @@ Compensation Tables, January 1, 2026**.
 ## Running the tests
 
 ```
-node test.js          # 198 engine checks, no dependencies
-npm install jsdom     # one time
-node test-dom.js      # 39 DOM integration checks in a real DOM
+npm ci                # install the exact locked test dependency
+npm test              # 198 engine + 39 DOM integration checks
 ```
 
 `test-dom.js` parses the real `index.html` in a real DOM, executes the real
@@ -99,12 +102,13 @@ looks safe as a string). It exits 2 and skips cleanly if jsdom isn't installed.
 **Not covered by either suite: visual layout.** jsdom has no renderer, so how the
 page *looks* — especially on a phone — still needs a human with a browser.
 
-No dependencies. 177 checks covering the golden case, 2026 constants, the pay
+The suites contain 237 checks covering the golden case, 2026 constants, the pay
 table, BAH data integrity and lookup, FICA/combat-zone/TSP behaviour, all 51
 state jurisdictions, special pays, input hardening, a 1,071-combination sweep,
 XSS escaping, share-link round-trip, corrupted-data resilience, accessibility,
-and deployment metadata. Exit code 0 = pass. **Run it after any change to
-`index.html` or `bah-data.js`, and after the yearly rate update.**
+deployment metadata, and real DOM event integration. Exit code 0 = pass. **Run
+them after any change to `index.html` or `bah-data.js`, and after the yearly rate
+update.**
 
 ## Verification
 

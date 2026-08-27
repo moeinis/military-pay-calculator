@@ -23,6 +23,8 @@ Military pay has many moving parts that change with rank, location, duty type, a
 
 - `index.html` — the app (must be at the repo root)
 - `bah-data.js` — 2026 BAH rate tables loaded by the app (must sit next to `index.html`)
+- `test.js`, `test-dom.js` — 237 automated engine and DOM integration checks
+- `package.json`, `package-lock.json` — reproducible test command and locked test dependency
 - `NOTES.md` — maintainer guide: data sources, yearly update steps, model assumptions
 - `social-preview.png` — link-sharing preview card
 - `README.md`, `LICENSE`

@@ -2,8 +2,8 @@
 /*
  * Browser-DOM integration tests for the Military Take-Home Pay Estimator.
  *
- *   npm install jsdom      (one time)
- *   node test-dom.js
+ *   npm ci                 (one time)
+ *   npm test
  *
  * test.js exercises the calculation engine against a stubbed DOM. This file is
  * the complement: it parses the real index.html in a real DOM implementation,
@@ -25,7 +25,7 @@ let JSDOM, VirtualConsole;
 try { ({ JSDOM, VirtualConsole } = require('jsdom')); }
 catch (e) {
   console.log('jsdom is not installed — skipping DOM integration tests.');
-  console.log('Install it with:  npm install jsdom');
+  console.log('Install project dependencies with:  npm ci');
   process.exit(2);
 }
 
