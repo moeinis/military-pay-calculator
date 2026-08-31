@@ -97,7 +97,8 @@ npm test              # 198 engine + 39 DOM integration checks
 `test-dom.js` parses the real `index.html` in a real DOM, executes the real
 scripts, and drives the UI with dispatched events — catching anything a stubbed
 DOM could hide (options never created, listeners never wired, escaping that only
-looks safe as a string). It exits 2 and skips cleanly if jsdom isn't installed.
+looks safe as a string). If jsdom isn't installed, it exits 2 and fails the test
+command with instructions to install the locked dependencies using `npm ci`.
 
 **Not covered by either suite: visual layout.** jsdom has no renderer, so how the
 page *looks* — especially on a phone — still needs a human with a browser.

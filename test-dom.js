@@ -24,7 +24,7 @@ const path = require('path');
 let JSDOM, VirtualConsole;
 try { ({ JSDOM, VirtualConsole } = require('jsdom')); }
 catch (e) {
-  console.log('jsdom is not installed — skipping DOM integration tests.');
+  console.error('jsdom is not installed — DOM integration tests cannot run.');
   console.log('Install project dependencies with:  npm ci');
   process.exit(2);
 }
