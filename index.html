@@ -102,8 +102,29 @@
     margin:0 0 16px;font-size:12.5px;color:var(--ink);line-height:1.5}
   .feedback{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--steel);
     border-radius:0 10px 10px 0;padding:12px 16px;font-size:13px;color:var(--ink);margin-top:4px}
+  .feedback-toggle{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--navy);font:inherit;font-weight:700;
+    padding:10px 14px;border-radius:9px;cursor:pointer;min-height:44px}
+  .feedback-toggle:hover,.feedback-toggle:focus-visible{border-color:var(--sky);outline:2px solid var(--sky)}
+  .feedback-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .feedback-header strong{font-size:14px}
+  .feedback-form{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .feedback-form.hidden{display:none}
+  .feedback-privacy{margin:0 0 12px;font-size:12px;color:var(--muted)}
+  .feedback-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .feedback-field{display:flex;flex-direction:column;gap:5px}
+  .feedback-field label{margin:0;font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.2px;color:var(--muted)}
+  .feedback-field input,.feedback-field select,.feedback-field textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}
+  .feedback-field textarea{min-height:86px;resize:vertical}
+  .feedback-field input:focus,.feedback-field select:focus,.feedback-field textarea:focus{outline:2px solid var(--sky);border-color:var(--sky)}
+  .feedback-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .feedback-submit{appearance:none;border:0;background:var(--navy);color:#fff;padding:10px 16px;border-radius:9px;cursor:pointer;font-weight:700;min-height:44px}
+  .feedback-submit:disabled{opacity:.7;cursor:wait}
+  .feedback-link{font-weight:600;white-space:nowrap;color:var(--steel)}
+  .feedback-status{min-height:20px;margin:8px 0 0;font-size:12px;font-weight:600}
+  .feedback-status.success{color:var(--good)}
+  .feedback-status.error{color:var(--bad)}
   .feedback a{font-weight:600;white-space:nowrap}
-  @media(max-width:720px){.scenarios,.results{grid-template-columns:1fr}}
+  @media(max-width:720px){.scenarios,.results{grid-template-columns:1fr}.feedback-header{align-items:flex-start}.feedback-actions{align-items:flex-start;flex-direction:column}}
   @media print{
     .actions{display:none}
     body{background:#fff}
@@ -275,10 +296,54 @@
     </div>
   </div>
 
-  <div class="feedback">
-    <strong>Spot a number that looks wrong?</strong>
-    Compare it against your LES and tell us where it differs — that's the most useful feedback we can get.
-    <a href="https://github.com/Blue-Star-Families1/military-pay-calculator/issues/new?title=Pay%20estimate%20looks%20wrong&body=Rank%2Fgrade%3A%20%0AYears%20of%20service%3A%20%0ADuty%20station%3A%20%0AState%20of%20legal%20residence%3A%20%0A%0AWhat%20the%20calculator%20showed%3A%20%0AWhat%20your%20LES%20shows%3A%20%0A%0A(Please%20do%20not%20include%20personal%20or%20identifying%20details.)" target="_blank" rel="noopener">Report an issue</a>
+  <div class="feedback" id="feedbackContainer">
+    <div class="feedback-header">
+      <strong>Spot a number that looks wrong?</strong>
+      <button id="feedbackToggle" class="feedback-toggle" type="button" aria-expanded="false" aria-controls="feedbackForm">Report a wrong estimate</button>
+    </div>
+    <form id="feedbackForm" class="feedback-form hidden" novalidate>
+      <p class="feedback-privacy" id="feedbackPrivacy">Do not include personal or identifying information.</p>
+      <div class="feedback-grid">
+        <div class="feedback-field">
+          <label for="feedbackGrade">Grade</label>
+          <input id="feedbackGrade" name="grade" type="text" readonly>
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackYears">Years of service</label>
+          <input id="feedbackYears" name="years_of_service" type="text" readonly>
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackStation">Duty station</label>
+          <input id="feedbackStation" name="duty_station" type="text" readonly>
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackState">State of legal residence</label>
+          <input id="feedbackState" name="state" type="text" readonly>
+        </div>
+      </div>
+
+      <div class="feedback-grid" style="margin-top:10px">
+        <div class="feedback-field">
+          <label for="feedbackCalculatorEstimate">Calculator result ($)</label>
+          <input id="feedbackCalculatorEstimate" name="calculator_result" type="number" min="0" step="1" required>
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackLesEstimate">LES result ($)</label>
+          <input id="feedbackLesEstimate" name="les_result" type="number" min="0" step="1" required>
+        </div>
+      </div>
+
+      <div class="feedback-field" style="margin-top:10px">
+        <label for="feedbackNotes">What differs? (optional)</label>
+        <textarea id="feedbackNotes" name="notes" maxlength="500" placeholder="Example: my LES shows a different BAH or tax deduction."></textarea>
+      </div>
+
+      <div class="feedback-actions">
+        <button id="feedbackSubmit" class="feedback-submit" type="submit">Send feedback</button>
+        <a id="feedbackGithubLink" class="feedback-link" href="https://github.com/Blue-Star-Families1/military-pay-calculator/issues/new?title=Pay%20estimate%20looks%20wrong&body=Rank%2Fgrade%3A%20%0AYears%20of%20service%3A%20%0ADuty%20station%3A%20%0AState%20of%20legal%20residence%3A%20%0A%0AWhat%20the%20calculator%20showed%3A%20%0AWhat%20your%20LES%20shows%3A%20%0A%0A(Please%20do%20not%20include%20personal%20or%20identifying%20details.)" target="_blank" rel="noopener">Use GitHub instead</a>
+      </div>
+      <p id="feedbackStatus" class="feedback-status" aria-live="polite" role="status"></p>
+    </form>
   </div>
 
   <div class="footnote" id="sources"></div>
@@ -785,8 +850,81 @@ $("shareBtn").addEventListener("click",()=>{
 
 $("sources").innerHTML='<strong>Data sources (2026):</strong> Basic pay — DFAS / FY2026 NDAA (3.8% raise, eff. 1 Jan 2026). BAS — DFAS ($476.95 enlisted / $328.48 officer). Federal brackets &amp; standard deduction — IRS Rev. Proc. 2025-32 (via Tax Foundation). FICA — Social Security wage base $184,500; Additional Medicare Tax 0.9% over $200,000. BAH — official 2026 DoD DTMO rate tables (all locations, all pay grades). State income tax — 2026 brackets &amp; standard deductions (Tax Foundation). Verify your state\'s exact military-pay rules.';
 
+function syncFeedbackDefaults(){
+  const gradeEl=$("feedbackGrade");
+  const yearsEl=$("feedbackYears");
+  const stationEl=$("feedbackStation");
+  const stateEl=$("feedbackState");
+  if(!gradeEl || !yearsEl || !stationEl || !stateEl) return;
+  gradeEl.value = $("grade").value;
+  yearsEl.value = $("yos").value;
+  stationEl.value = $("stationA").value || "Not selected";
+  stateEl.value = $("stateA").value;
+  const calcEl=$("feedbackCalculatorEstimate");
+  const lesEl=$("feedbackLesEstimate");
+  if(calcEl) calcEl.value = Math.round(Math.max(0, calcScenario(num("bahA",0), $("stateA").value, $("exemptA").checked).takeHome));
+  if(lesEl) lesEl.value = "";
+}
+function showFeedbackStatus(message,type){
+  const status=$("feedbackStatus");
+  if(!status) return;
+  status.textContent = message || "";
+  status.className = "feedback-status" + (type ? " " + type : "");
+}
+function setFeedbackFormOpen(open){
+  const toggle=$("feedbackToggle");
+  const form=$("feedbackForm");
+  if(!toggle || !form) return;
+  form.classList.toggle("hidden", !open);
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.textContent = open ? "Hide report form" : "Report a wrong estimate";
+}
+const FEEDBACK_ENDPOINT = "";
+if($("feedbackToggle") && $("feedbackForm")){
+  $("feedbackToggle").addEventListener("click", ()=>{
+    const open = $("feedbackForm").classList.contains("hidden");
+    setFeedbackFormOpen(open);
+    if(open) syncFeedbackDefaults();
+  });
+  $("feedbackForm").addEventListener("submit", async (event)=>{
+    event.preventDefault();
+    const calcEl=$("feedbackCalculatorEstimate");
+    const lesEl=$("feedbackLesEstimate");
+    if(!calcEl || !lesEl || !calcEl.value || !lesEl.value){
+      showFeedbackStatus("Please enter both calculator and LES amounts.", "error");
+      return;
+    }
+    if(!FEEDBACK_ENDPOINT){
+      showFeedbackStatus("Feedback is temporarily unavailable. Please use GitHub instead.", "error");
+      return;
+    }
+    const btn=$("feedbackSubmit");
+    if(btn){ btn.disabled=true; btn.textContent="Sending..."; }
+    try {
+      const response = await fetch(FEEDBACK_ENDPOINT,{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify({
+        type:"wrong_estimate",
+        grade:$("feedbackGrade").value,
+        years_of_service:$("feedbackYears").value,
+        duty_station:$("feedbackStation").value,
+        state:$("feedbackState").value,
+        calculator_result:Number(calcEl.value),
+        les_result:Number(lesEl.value),
+        notes:$("feedbackNotes").value.trim()
+      })});
+      if(!response.ok) throw new Error("send_failed");
+      showFeedbackStatus("Feedback sent—thank you.", "success");
+      $("feedbackForm").reset();
+      syncFeedbackDefaults();
+    } catch (err) {
+      showFeedbackStatus("Couldn’t send. Please try again.", "error");
+    } finally {
+      if(btn){ btn.disabled=false; btn.textContent="Send feedback"; }
+    }
+  });
+}
 applyState();
 calculate();
+if($("feedbackToggle") && $("feedbackForm")) syncFeedbackDefaults();
 </script>
 </body>
 </html>

@@ -91,6 +91,19 @@ setTimeout(() => {
   ok('take-home shown as a dollar figure', /^\$[\d,]+$/.test(takeHome(0)));
   ok('difference summary populated', $('diffBox').textContent.includes('mo'));
 
+  G('Anonymous feedback UI');
+  ok('feedback toggle exists', !!$('feedbackToggle'));
+  ok('feedback form exists', !!$('feedbackForm'));
+  ok('feedback form hidden by default', $('feedbackForm').classList.contains('hidden'));
+  ok('privacy warning is present', /Do not include personal or identifying information/i.test($('feedbackPrivacy').textContent));
+  ok('GitHub fallback link exists', !!$('feedbackGithubLink'));
+  $('feedbackToggle').click();
+  ok('feedback form is visible after toggle', !$('feedbackForm').classList.contains('hidden'));
+  eq('grade prefilled in feedback form', $('feedbackGrade').value, $('grade').value);
+  eq('years prefilled in feedback form', $('feedbackYears').value, $('yos').value);
+  eq('state prefilled in feedback form', $('feedbackState').value, $('stateA').value);
+  ok('feedback submit button is labeled clearly', /report|send/i.test($('feedbackSubmit').textContent));
+
   G('BAH auto-fill driven by real events');
   $('grade').value = 'E-5'; fire($('grade'), 'change');
   $('deps').value = 'yes'; fire($('deps'), 'change');
