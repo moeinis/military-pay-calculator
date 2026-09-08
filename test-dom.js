@@ -2,8 +2,8 @@
 /*
  * Browser-DOM integration tests for the Military Take-Home Pay Estimator.
  *
- *   npm ci                 (one time)
- *   npm test
+ *   npm install jsdom      (one time)
+ *   node test-dom.js
  *
  * test.js exercises the calculation engine against a stubbed DOM. This file is
  * the complement: it parses the real index.html in a real DOM implementation,
@@ -24,8 +24,8 @@ const path = require('path');
 let JSDOM, VirtualConsole;
 try { ({ JSDOM, VirtualConsole } = require('jsdom')); }
 catch (e) {
-  console.error('jsdom is not installed — DOM integration tests cannot run.');
-  console.log('Install project dependencies with:  npm ci');
+  console.log('jsdom is not installed — skipping DOM integration tests.');
+  console.log('Install it with:  npm install jsdom');
   process.exit(2);
 }
 
@@ -91,19 +91,6 @@ setTimeout(() => {
   ok('take-home shown as a dollar figure', /^\$[\d,]+$/.test(takeHome(0)));
   ok('difference summary populated', $('diffBox').textContent.includes('mo'));
 
-  G('Anonymous feedback UI');
-  ok('feedback toggle exists', !!$('feedbackToggle'));
-  ok('feedback form exists', !!$('feedbackForm'));
-  ok('feedback form hidden by default', $('feedbackForm').classList.contains('hidden'));
-  ok('privacy warning is present', /Do not include personal or identifying information/i.test($('feedbackPrivacy').textContent));
-  ok('GitHub fallback link exists', !!$('feedbackGithubLink'));
-  $('feedbackToggle').click();
-  ok('feedback form is visible after toggle', !$('feedbackForm').classList.contains('hidden'));
-  eq('grade prefilled in feedback form', $('feedbackGrade').value, $('grade').value);
-  eq('years prefilled in feedback form', $('feedbackYears').value, $('yos').value);
-  eq('state prefilled in feedback form', $('feedbackState').value, $('stateA').value);
-  ok('feedback submit button is labeled clearly', /report|send/i.test($('feedbackSubmit').textContent));
-
   G('BAH auto-fill driven by real events');
   $('grade').value = 'E-5'; fire($('grade'), 'change');
   $('deps').value = 'yes'; fire($('deps'), 'change');
@@ -167,6 +154,27 @@ setTimeout(() => {
      labelled.length === controls.length);
   ok('external links are rel=noopener',
      [...d.querySelectorAll('a[target="_blank"]')].every(a => /noopener/.test(a.rel)));
+
+  G('Feedback section');
+  (() => {
+    const btn = $('feedbackBtn');
+    ok('feedback button present', !!btn);
+    ok('button resolves to a real destination',
+       btn && /^https:\/\//i.test(btn.getAttribute('href') || ''));
+    ok('button opens in a new tab safely',
+       btn && btn.target === '_blank' && /noopener/.test(btn.rel));
+    const txt = d.querySelector('.feedback').textContent;
+    ok('asks whether the estimate was accurate', /accurate or inaccurate/i.test(txt));
+    ok('asks how it could be improved', /how can we improve/i.test(txt));
+    ok('asks about missing fields', /fields or situations missing/i.test(txt));
+    ok('explains why name and email are collected', /name and email/i.test(txt));
+    ok('promises the details are not public', /never shown publicly/i.test(txt));
+    ok('warns against sensitive details', /account numbers/i.test(txt));
+    // With no form configured, the button must fall back rather than dead-link.
+    const configured = /forms\.gle|docs\.google\.com/i.test(btn.getAttribute('href') || '');
+    ok('unconfigured build hides the duplicate GitHub link',
+       configured || ($('fbAlt') && $('fbAlt').style.display === 'none'));
+  })();
 
   G('Shared link restores state in a real document');
   (() => {
