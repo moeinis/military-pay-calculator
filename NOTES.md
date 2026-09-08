@@ -8,6 +8,10 @@ Internal reference for updating and maintaining the Military Take-Home Pay Estim
 | --- | --- |
 | `index.html` | The entire app — UI, styling, and calculation logic in one file. |
 | `bah-data.js` | 2026 BAH rate tables (338 housing areas). Loaded by `index.html` via `<script src>`. Must sit in the same folder. |
+| `test.js` | Dependency-free calculation-engine test suite (198 checks). |
+| `test-dom.js` | Browser-DOM integration test suite (62 checks). |
+| `package.json` / `package-lock.json` | Reproducible Node.js test scripts and pinned development dependencies. |
+| `.github/workflows/test.yml` | Runs all 260 automated checks on pushes and pull requests. |
 | `README.md` | Public overview. |
 | `LICENSE` | MIT. |
 | `NOTES.md` | This file. |
@@ -77,29 +81,39 @@ Compensation Tables, January 1, 2026**.
 - **Negative BAH / NaN** clamps to 0.
 - **`esc()` is defined at the top of the script** because it is called during initial render of the special-pay rows. Do not move it below its first use.
 
-## Feedback form (Google Form)
+## Feedback form
 
-The footer feedback card points at a Google Form. To connect or change it, edit
-**one line** near the top of the `<script>` in `index.html`:
+The card under the results collects, in this order:
+
+1. **Was this accurate or inaccurate compared with your actual pay? Please explain** — required
+2. **How can we improve it? Are there fields or situations missing?** — required
+3. **Name** and **email** — required, so we can follow up
+4. Calculator result and LES result in dollars — optional
+
+Grade, years of service, duty station, and state are filled in automatically
+from the current selections and sent along as read-only context.
+
+**Where the answers go.** Set exactly one of two constants near the top of the
+`<script>` in `index.html`:
 
 ```js
-const FEEDBACK_URL = "https://forms.gle/XXXXXXXX";
+const FEEDBACK_FORM_URL = "https://forms.gle/XXXXXXXX";  // Google Form: button opens it
+const FEEDBACK_ENDPOINT = "";                            // or a JSON POST URL
 ```
 
-Leave it as `""` and the button falls back to the GitHub issue form and hides the
-"Prefer GitHub?" line, so the page is never left with a dead button.
+- `FEEDBACK_ENDPOINT` wins if both are set. It receives a JSON POST with every
+  field above plus the auto-filled context; use Formspree, Zapier, or an Apps
+  Script web app.
+- If only `FEEDBACK_FORM_URL` is set, the in-page fields are hidden and the
+  button opens the Google Form instead — the fields cannot submit anywhere
+  without an endpoint, so showing them would be a dead end.
+- If both are empty the card falls back to the public GitHub issue link, so the
+  button is never dead.
 
-The form should collect, in this order:
-
-1. **Was this accurate or inaccurate compared with your actual pay? Please explain.** — long answer, required
-2. **How can we improve it? Are there fields or situations missing?** — long answer, required
-3. **Name** — short answer
-4. **Email** — short answer
-
-Do **not** move this collection to GitHub issues: those are public, and these
-responses pair a person's name and email with details about their own pay.
-In the Google Form settings, keep "Collect email addresses" off (question 4 asks
-for it explicitly with consent) and leave the responses sheet private.
+**Name and email must not be routed to GitHub issues.** Those are public, and
+these responses pair a person's identity with details about their own pay. Keep
+the Google Form's response sheet private, and leave the form's own "Collect
+email addresses" setting off — question 3 asks for it explicitly, with context.
 
 ## Accessibility & print
 
@@ -110,25 +124,26 @@ for it explicitly with consent) and leave the responses sheet private.
 ## Running the tests
 
 ```
-node test.js          # 198 engine checks, no dependencies
-npm install jsdom     # one time
-node test-dom.js      # 39 DOM integration checks in a real DOM
+npm ci                # install the exact locked test dependency
+npm test              # 198 engine + 62 DOM integration checks
 ```
 
 `test-dom.js` parses the real `index.html` in a real DOM, executes the real
 scripts, and drives the UI with dispatched events — catching anything a stubbed
 DOM could hide (options never created, listeners never wired, escaping that only
-looks safe as a string). It exits 2 and skips cleanly if jsdom isn't installed.
+looks safe as a string). If jsdom isn't installed, it exits 2 and fails the test
+command with instructions to install the locked dependencies using `npm ci`.
 
 **Not covered by either suite: visual layout.** jsdom has no renderer, so how the
 page *looks* — especially on a phone — still needs a human with a browser.
 
-No dependencies. 177 checks covering the golden case, 2026 constants, the pay
+The suites contain 260 checks covering the golden case, 2026 constants, the pay
 table, BAH data integrity and lookup, FICA/combat-zone/TSP behaviour, all 51
 state jurisdictions, special pays, input hardening, a 1,071-combination sweep,
 XSS escaping, share-link round-trip, corrupted-data resilience, accessibility,
-and deployment metadata. Exit code 0 = pass. **Run it after any change to
-`index.html` or `bah-data.js`, and after the yearly rate update.**
+deployment metadata, and real DOM event integration. Exit code 0 = pass. **Run
+them after any change to `index.html` or `bah-data.js`, and after the yearly rate
+update.**
 
 ## Verification
 

@@ -2,8 +2,8 @@
 /*
  * Browser-DOM integration tests for the Military Take-Home Pay Estimator.
  *
- *   npm install jsdom      (one time)
- *   node test-dom.js
+ *   npm ci                 (one time)
+ *   npm test
  *
  * test.js exercises the calculation engine against a stubbed DOM. This file is
  * the complement: it parses the real index.html in a real DOM implementation,
@@ -24,8 +24,8 @@ const path = require('path');
 let JSDOM, VirtualConsole;
 try { ({ JSDOM, VirtualConsole } = require('jsdom')); }
 catch (e) {
-  console.log('jsdom is not installed — skipping DOM integration tests.');
-  console.log('Install it with:  npm install jsdom');
+  console.error('jsdom is not installed — DOM integration tests cannot run.');
+  console.log('Install project dependencies with:  npm ci');
   process.exit(2);
 }
 
@@ -91,6 +91,56 @@ setTimeout(() => {
   ok('take-home shown as a dollar figure', /^\$[\d,]+$/.test(takeHome(0)));
   ok('difference summary populated', $('diffBox').textContent.includes('mo'));
 
+  G('Feedback UI');
+  ok('feedback toggle exists', !!$('feedbackToggle'));
+  ok('feedback form exists', !!$('feedbackForm'));
+  ok('feedback form hidden by default', $('feedbackForm').classList.contains('hidden'));
+  ok('GitHub fallback link exists', !!$('feedbackGithubLink'));
+  $('feedbackToggle').click();
+  ok('feedback form is visible after toggle', !$('feedbackForm').classList.contains('hidden'));
+  eq('grade prefilled in feedback form', $('feedbackGrade').value, $('grade').value);
+  eq('years prefilled in feedback form', $('feedbackYears').value, $('yos').value);
+  eq('state prefilled in feedback form', $('feedbackState').value, $('stateA').value);
+  ok('feedback submit button is labeled clearly', /report|send/i.test($('feedbackSubmit').textContent));
+
+  G('Feedback asks the two questions and identifies the reporter');
+  (() => {
+    const acc = $('feedbackAccuracy'), imp = $('feedbackImprove');
+    const nm = $('feedbackName'), em = $('feedbackEmail');
+    ok('accuracy question present', !!acc);
+    ok('improvement question present', !!imp);
+    ok('both questions are required', acc.hasAttribute('required') && imp.hasAttribute('required'));
+    const lbl = id => d.querySelector('label[for="' + id + '"]').textContent;
+    ok('accuracy question asks accurate vs inaccurate', /accurate or inaccurate/i.test(lbl('feedbackAccuracy')));
+    ok('improvement question asks about missing fields', /fields or situations missing/i.test(lbl('feedbackImprove')));
+    ok('name field present and required', nm && nm.hasAttribute('required'));
+    ok('email field present, required, typed', em && em.hasAttribute('required') && em.type === 'email');
+    // Free-text answers must not be forced out by the optional dollar amounts.
+    ok('dollar amounts are optional',
+       !$('feedbackCalculatorEstimate').hasAttribute('required') &&
+       !$('feedbackLesEstimate').hasAttribute('required'));
+    const priv = $('feedbackPrivacy').textContent;
+    ok('privacy note explains why name and email are asked for', /follow up/i.test(priv));
+    ok('privacy note promises the details stay private', /never shown publicly/i.test(priv));
+    ok('privacy note still warns off sensitive data', /account numbers|SSN/i.test(priv));
+
+    // Submitting incomplete answers must be refused before anything is sent.
+    const submit = () => $('feedbackForm').dispatchEvent(
+      new w.Event('submit', { bubbles: true, cancelable: true }));
+    const status = () => $('feedbackStatus').textContent;
+    acc.value = ''; imp.value = ''; nm.value = ''; em.value = '';
+    submit();
+    ok('blank answers are rejected', /answer both questions/i.test(status()));
+    acc.value = 'Close, but BAH was off.'; imp.value = 'Add drill pay.';
+    submit();
+    ok('missing name and email are rejected', /name and email/i.test(status()));
+    nm.value = 'Test User'; em.value = 'not-an-email';
+    submit();
+    ok('malformed email is rejected', /email address/i.test(status()));
+    nm.value = ''; em.value = ''; acc.value = ''; imp.value = '';
+    $('feedbackStatus').textContent = '';
+  })();
+
   G('BAH auto-fill driven by real events');
   $('grade').value = 'E-5'; fire($('grade'), 'change');
   $('deps').value = 'yes'; fire($('deps'), 'change');
@@ -154,27 +204,6 @@ setTimeout(() => {
      labelled.length === controls.length);
   ok('external links are rel=noopener',
      [...d.querySelectorAll('a[target="_blank"]')].every(a => /noopener/.test(a.rel)));
-
-  G('Feedback section');
-  (() => {
-    const btn = $('feedbackBtn');
-    ok('feedback button present', !!btn);
-    ok('button resolves to a real destination',
-       btn && /^https:\/\//i.test(btn.getAttribute('href') || ''));
-    ok('button opens in a new tab safely',
-       btn && btn.target === '_blank' && /noopener/.test(btn.rel));
-    const txt = d.querySelector('.feedback').textContent;
-    ok('asks whether the estimate was accurate', /accurate or inaccurate/i.test(txt));
-    ok('asks how it could be improved', /how can we improve/i.test(txt));
-    ok('asks about missing fields', /fields or situations missing/i.test(txt));
-    ok('explains why name and email are collected', /name and email/i.test(txt));
-    ok('promises the details are not public', /never shown publicly/i.test(txt));
-    ok('warns against sensitive details', /account numbers/i.test(txt));
-    // With no form configured, the button must fall back rather than dead-link.
-    const configured = /forms\.gle|docs\.google\.com/i.test(btn.getAttribute('href') || '');
-    ok('unconfigured build hides the duplicate GitHub link',
-       configured || ($('fbAlt') && $('fbAlt').style.display === 'none'));
-  })();
 
   G('Shared link restores state in a real document');
   (() => {
