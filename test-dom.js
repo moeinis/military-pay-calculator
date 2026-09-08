@@ -91,17 +91,48 @@ setTimeout(() => {
   ok('take-home shown as a dollar figure', /^\$[\d,]+$/.test(takeHome(0)));
   ok('difference summary populated', $('diffBox').textContent.includes('mo'));
 
-  G('Feedback UI');
+  // The feedback card has two modes, set by constants in index.html:
+  //   link-only  — a Google Form URL and no POST endpoint: the in-page fields
+  //                cannot submit anywhere, so they hide and the button opens
+  //                the form.
+  //   in-page    — a POST endpoint is configured: the fields submit directly.
+  // Read the configured values so this suite verifies whichever is deployed.
+  const cfg = (name) => {
+    const m = html.match(new RegExp('const\\s+' + name + '\\s*=\\s*"([^"]*)"'));
+    return m ? m[1].trim() : '';
+  };
+  const FORM_URL = cfg('FEEDBACK_FORM_URL'), ENDPOINT = cfg('FEEDBACK_ENDPOINT');
+  const linkOnly = !ENDPOINT && /^https:\/\//i.test(FORM_URL);
+
+  G('Feedback card (' + (linkOnly ? 'link-only mode' : 'in-page mode') + ')');
   ok('feedback toggle exists', !!$('feedbackToggle'));
   ok('feedback form exists', !!$('feedbackForm'));
-  ok('feedback form hidden by default', $('feedbackForm').classList.contains('hidden'));
   ok('GitHub fallback link exists', !!$('feedbackGithubLink'));
-  $('feedbackToggle').click();
-  ok('feedback form is visible after toggle', !$('feedbackForm').classList.contains('hidden'));
-  eq('grade prefilled in feedback form', $('feedbackGrade').value, $('grade').value);
-  eq('years prefilled in feedback form', $('feedbackYears').value, $('yos').value);
-  eq('state prefilled in feedback form', $('feedbackState').value, $('stateA').value);
-  ok('feedback submit button is labeled clearly', /report|send/i.test($('feedbackSubmit').textContent));
+  ok('a destination is configured', linkOnly || !!ENDPOINT ||
+     /^https:\/\//i.test($('feedbackGithubLink').href));
+
+  if (linkOnly) {
+    ok('form points at Google Forms', /docs\.google\.com\/forms|forms\.gle/i.test(FORM_URL));
+    ok('form URL is https', /^https:\/\//i.test(FORM_URL));
+    // Fields that cannot submit must not be shown as though they could.
+    ok('in-page fields are hidden', $('feedbackForm').style.display === 'none');
+    ok('toggle drops its disclosure semantics', !$('feedbackToggle').hasAttribute('aria-expanded'));
+    ok('toggle no longer claims to control the form', !$('feedbackToggle').hasAttribute('aria-controls'));
+    let opened = null;
+    const realOpen = w.open;
+    w.open = (u) => { opened = u; return null; };
+    $('feedbackToggle').click();
+    w.open = realOpen;
+    eq('clicking the button opens the form', opened, FORM_URL);
+  } else {
+    ok('feedback form hidden by default', $('feedbackForm').classList.contains('hidden'));
+    $('feedbackToggle').click();
+    ok('feedback form is visible after toggle', !$('feedbackForm').classList.contains('hidden'));
+    eq('grade prefilled in feedback form', $('feedbackGrade').value, $('grade').value);
+    eq('years prefilled in feedback form', $('feedbackYears').value, $('yos').value);
+    eq('state prefilled in feedback form', $('feedbackState').value, $('stateA').value);
+    ok('feedback submit button is labeled clearly', /report|send/i.test($('feedbackSubmit').textContent));
+  }
 
   G('Feedback asks the two questions and identifies the reporter');
   (() => {
@@ -123,6 +154,8 @@ setTimeout(() => {
     ok('privacy note explains why name and email are asked for', /follow up/i.test(priv));
     ok('privacy note promises the details stay private', /never shown publicly/i.test(priv));
     ok('privacy note still warns off sensitive data', /account numbers|SSN/i.test(priv));
+
+    if (linkOnly) return;   // no in-page submit handler to exercise
 
     // Submitting incomplete answers must be refused before anything is sent.
     const submit = () => $('feedbackForm').dispatchEvent(

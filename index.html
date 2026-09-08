@@ -910,7 +910,7 @@ function setFeedbackFormOpen(open){
    in-page fields are replaced by a button to the form. If both are empty the
    card falls back to the public GitHub issue link, so the button is never dead.
 --------------------------------------------------------------------------- */
-const FEEDBACK_FORM_URL = "";
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeHHwV6T5ui2C2gVclTrtuOrFy7g9bDx7rr-fdC5dXBROO-hQ/viewform";
 const FEEDBACK_ENDPOINT = "";
 // A Google Form (and no POST endpoint) means the answers are collected off-page:
 // send people straight there instead of showing fields that cannot submit.
@@ -918,9 +918,14 @@ const FEEDBACK_IS_LINK_ONLY = !FEEDBACK_ENDPOINT && /^https:\/\//i.test(String(F
 if(FEEDBACK_IS_LINK_ONLY){
   const t=$("feedbackToggle");
   if(t){
-    t.removeAttribute("aria-controls");
-    t.removeAttribute("aria-expanded");
-    t.addEventListener("click",()=>{ window.open(FEEDBACK_FORM_URL.trim(),"_blank","noopener"); });
+    // the button is a plain link now, not a disclosure control
+    if(typeof t.removeAttribute==="function"){
+      t.removeAttribute("aria-controls");
+      t.removeAttribute("aria-expanded");
+    }
+    if(typeof t.addEventListener==="function"){
+      t.addEventListener("click",()=>{ window.open(FEEDBACK_FORM_URL.trim(),"_blank","noopener"); });
+    }
   }
   const f=$("feedbackForm"); if(f && f.style) f.style.display="none";
 }
