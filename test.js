@@ -520,6 +520,31 @@ G('Special and incentive pays');
   });
   ok('all ' + SPECIALS.length + ' special pays behave correctly', bad === 0);
 })();
+/* Defaults that have been checked against DoD FMR Vol 7A. Only these are
+   asserted; the rest are deliberately absent so this block never implies more
+   verification than was actually done. Two were wrong when first audited:
+   career sea pay was 805, above the statutory ceiling, and submarine duty pay
+   was 175, a near-bottom cell. Both values appear in the other pay's table. */
+(() => {
+  const CITED = {
+    seapay: [750, 'FMR 7A Ch 18 para 4.1 — statutory ceiling and Navy table max'],
+    hdip:   [150, 'FMR 7A Ch 24 paras 4.3, 5.2, 6.2, 7.3'],
+    jump:   [150, 'FMR 7A Ch 24 para 3.3.1 static line'],
+    halo:   [225, 'FMR 7A Ch 24 para 3.3.2 military freefall'],
+    sub:    [950, 'FMR 7A Ch 23 Table 23-1 — O-5/O-6 over 18, top cell']
+  };
+  Object.keys(CITED).forEach(key => {
+    const row = SPECIALS.find(s => s[0] === key);
+    ok('special pay "' + key + '" exists', !!row);
+    if (row) eq(key + ' default (' + CITED[key][1] + ')', row[2], CITED[key][0], 0);
+  });
+  // Career sea pay cannot legally exceed its ceiling, whatever a later edit says.
+  ok('career sea pay is at or under the $750 statutory ceiling',
+     SPECIALS.find(s => s[0] === 'seapay')[2] <= 750);
+  // Submarine duty pay cannot legally exceed $1,000 (FMR 7A Ch 23 para 2.3).
+  ok('submarine duty pay is at or under the $1,000 statutory ceiling',
+     SPECIALS.find(s => s[0] === 'sub')[2] <= 1000);
+})();
 
 G('Input hardening');
 baseline(); set('other','1,500');   eq('"1,500" parses to 1500', calcScenario(1800,'NC',false).other, 1500);

@@ -205,6 +205,30 @@ FICA is computed on basic pay; Roth TSP does **not** reduce the FICA wage; and
 Roth TSP does **not** reduce federal taxable wages (LES federal wage 8,883.67 =
 basic pay 9,004.20 minus the pre-tax debt, with the 1,350.63 Roth not deducted).
 
+### Special-pay defaults audit (2026-09)
+
+The `SPECIALS` defaults were the last cluster of numbers with no external
+anchor, and the field label promises "common 2026 maximums". Two were wrong:
+
+| Row | Was | Now | Source |
+| --- | --- | --- | --- |
+| Career sea pay | 805 | **750** | FMR 7A Ch 18 para 4.1 — $750 is the statutory ceiling; 805 exceeded it outright |
+| Submarine duty pay | 175 | **950** | FMR 7A Ch 23 Table 23-1, O-5/O-6 over 18; 175 was a near-bottom enlisted cell |
+
+Both wrong values appear in the *other* pay's published table, so this looks
+like cross-contamination between two DFAS pages rather than two separate slips.
+
+Confirmed correct and now cited in the test: HDIP 150, jump 150, HALO 225.
+
+**Still unverified — do not treat as checked:** ACIP 1000, diving 340, hardship
+duty 150, SDAP 450, FSA 250, HFP/IDP 225. The test asserts only the five rows
+that were actually read out of the FMR, deliberately, so the block never implies
+more verification than was done.
+
+Note CSP-Premium ($200-350, FMR 7A Ch 18 para 4.2) is a separate entitlement and
+is **not** folded into the sea pay default. A member drawing it should add it
+under "Other special pay".
+
 The general rule this earned: a constant that can be derived should be derived,
 and a constant that cannot should be checked against something outside this
 repository. Asserting a literal against itself buys nothing.
