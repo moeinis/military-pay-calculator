@@ -200,6 +200,21 @@ repayment as an "allotment".
 Federal will not reconcile exactly and should not be expected to: the app models
 annual liability / 12, DFAS withholds per IRS Pub 15-T tables.
 
+Two smaller things this surfaced, both deliberately left alone:
+
+- **The basic pay table stores whole dollars.** DFAS publishes cents — this
+  member's O-3 rate is 9,004.20, the table holds 9,004. That is why Social
+  Security came out at 558.25 against a real 558.26. Every result is up to
+  ~50 cents light. Immaterial for an estimator, and re-keying 500+ cells to
+  chase it would create far more risk than it removes, but it is the reason a
+  penny-exact match is not achievable and should not be promised.
+- **"Other monthly deductions" is treated as post-tax.** This member's debt was
+  pre-tax (LES federal wage = basic pay minus the debt, exactly). Entering it in
+  that field reduces take-home but not taxable income, which leaves ~27/month
+  on a 120.53 debt at the 22% bracket. Adding a pre-tax/post-tax toggle is the
+  obvious fix and also one more decision to put in front of a user who is
+  already guessing. Revisit only if a second LES shows the same pattern.
+
 Three behaviours this externally confirmed, which no internal test could:
 FICA is computed on basic pay; Roth TSP does **not** reduce the FICA wage; and
 Roth TSP does **not** reduce federal taxable wages (LES federal wage 8,883.67 =
