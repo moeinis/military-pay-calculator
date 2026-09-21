@@ -176,6 +176,35 @@ The HoH row is a trap for anyone tidying this file: its 32% and 35% floors sit
 $25 below single's, which reads like a typo and is not. Two tests assert the
 gaps deliberately so a future "cleanup" fails loudly.
 
+### First reconciliation against a real LES (O-3, 15 yrs, Navy, TN, Jun 2026)
+
+A reviewer reported federal and Medicare "way off" plus $77 unexplained. The
+statement settled all of it, and most of the news was good:
+
+| Line | LES | Engine | |
+| --- | --- | --- | --- |
+| BAS (officer) | 328.48 | 328.48 | exact |
+| FICA Social Security | 558.26 | base x 6.2% = 558.26 | exact |
+| FICA Medicare | 130.56 | base x 1.45% = 130.56 | exact |
+| Federal withheld | 1,218.51 | ~1,245 | ~27 high, expected |
+
+"Medicare way off" was a year-to-date figure (308.99) compared against a monthly
+one. Nothing was wrong.
+
+The $77 was a **DEBT line of 120.53**, which the app had no field for, partly
+offset by 26.00 of assumed SGLI the member was not charged and the ~27 federal
+difference. Net 67.95. Users can already enter it under "Other monthly
+deductions"; the hint there now says so explicitly, because nobody reads a debt
+repayment as an "allotment".
+
+Federal will not reconcile exactly and should not be expected to: the app models
+annual liability / 12, DFAS withholds per IRS Pub 15-T tables.
+
+Three behaviours this externally confirmed, which no internal test could:
+FICA is computed on basic pay; Roth TSP does **not** reduce the FICA wage; and
+Roth TSP does **not** reduce federal taxable wages (LES federal wage 8,883.67 =
+basic pay 9,004.20 minus the pre-tax debt, with the 1,350.63 Roth not deducted).
+
 The general rule this earned: a constant that can be derived should be derived,
 and a constant that cannot should be checked against something outside this
 repository. Asserting a literal against itself buys nothing.
