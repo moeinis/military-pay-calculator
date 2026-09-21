@@ -220,7 +220,7 @@
       <div>
         <label for="tspRoth">TSP — Roth (% of basic pay)</label>
         <input type="number" id="tspRoth" value="0" min="0" max="100" step="1">
-        <div class="hint">After-tax. You can contribute to both — on your LES look for <strong>TSP Base</strong> (Traditional) and <strong>Roth TSP</strong> under Deductions.</div>
+        <div class="hint">After-tax. You can contribute to both. Your LES has a <strong>separate TSP block</strong> near the bottom — not the Deductions column — showing your Traditional and Roth percentages. Exact labels differ by service.</div>
       </div>
       <div>
         <label for="sgli">SGLI life insurance</label>
@@ -472,11 +472,33 @@ const GRADE_ORDER = ["E-1 <4mo","E-1","E-2","E-3","E-4","E-5","E-6","E-7","E-8",
 const BAS_ENL = 476.95, BAS_OFF = 328.48;
 // sanity ceiling for the manual BAH field - real rates top out near $8,208
 const BAH_MAX = 50000;
-// 2026 Executive Schedule basic-pay caps: Level II (O-7..O-10), Level V (O-6 & below)
-const PAY_CAP = {"O-7":18808.20,"O-8":18808.20,"O-9":18808.20,"O-10":18808.20,"O-6":15258.30};
-// Combat-zone (CZTE) monthly exclusion cap for commissioned officers = max enlisted basic pay + IDP
-const CZTE_CAP = 10729 + 225;
-const ADDL_MEDI_THRESHOLD = 200000, ADDL_MEDI_RATE = 0.009;
+/* Executive Schedule basic-pay caps: Level II (O-7..O-10), Level V (O-6).
+   Source: OPM Salary Table No. 2026-EX, effective January 2026 —
+   Level II $228,000/yr, Level V $184,900/yr. Monthly = annual / 12.
+   These were carried over from 2025 ($225,700 / $183,100) and understated
+   senior-officer pay; third-party charts quote several conflicting monthly
+   figures, so the annual OPM rate is divided here rather than transcribed. */
+const ES_LEVEL_II = 228000, ES_LEVEL_V = 184900;
+const PAY_CAP = {
+  "O-7":ES_LEVEL_II/12, "O-8":ES_LEVEL_II/12,
+  "O-9":ES_LEVEL_II/12, "O-10":ES_LEVEL_II/12,
+  "O-6":ES_LEVEL_V/12
+};
+/* Combat-zone (CZTE) monthly exclusion cap for commissioned officers =
+   highest enlisted basic pay + $225 IDP. Derived from the pay table rather
+   than written down, so the yearly rate update carries it automatically —
+   a hardcoded copy is exactly how PAY_CAP went a year stale unnoticed. */
+const IDP_MONTHLY = 225;
+const CZTE_CAP = Math.max(...Object.keys(PAY)
+  .filter(g => g.startsWith("E-"))
+  .flatMap(g => PAY[g].filter(v => v != null))) + IDP_MONTHLY;
+/* Additional Medicare Tax (IRC 3101(b)(2)) — 0.9% on wages above a filing-status
+   threshold. These are statutory, NOT inflation-indexed, so they do not change
+   with the yearly tax update. Single and HoH $200,000; MFJ $250,000.
+   One table, referenced below — the previous code repeated these literals at the
+   call site, which is how two copies of a number drift apart. */
+const ADDL_MEDI_RATE = 0.009;
+const ADDL_MEDI_THRESHOLD = {single:200000, hoh:200000, mfj:250000};
 // BAH grade -> column index in bah-data.js arrays (E1..E9,W1..W5,O1E,O2E,O3E,O1..O10)
 const BAH_COL={"E-1 <4mo":0,"E-1":0,"E-2":1,"E-3":2,"E-4":3,"E-5":4,"E-6":5,"E-7":6,"E-8":7,"E-9":8,"W-1":9,"W-2":10,"W-3":11,"W-4":12,"W-5":13,"O-1E":14,"O-2E":15,"O-3E":16,"O-1":17,"O-2":18,"O-3":19,"O-4":20,"O-5":21,"O-6":22,"O-7":23,"O-8":24,"O-9":25,"O-10":26};
 function bahLookup(mha){
@@ -511,11 +533,18 @@ const SPECIALS = [
   ["custom","Other special pay (taxable)",0,true]
 ];
 
+/* Federal tax year 2026 — IRS Rev. Proc. 2025-32, section 3.01, Tables 1-3.
+   Standard deduction: MFJ $32,200 / single $16,100 / HoH $24,150.
+   Bracket floors are the "Over $X" figures in each table. Note that head of
+   household is NOT single's table with a wider bottom: HoH's 32% floor is
+   $201,750 and its 35% floor is $256,200, while single's are $201,775 and
+   $256,225. Those $25 gaps look like typos and are not — do not "tidy" them
+   to match the single column. */
 const STD_DED = {single:16100, mfj:32200, hoh:24150};
 const BRACKETS = {
   single:[[0,.10],[12400,.12],[50400,.22],[105700,.24],[201775,.32],[256225,.35],[640600,.37]],
   mfj:[[0,.10],[24800,.12],[100800,.22],[211400,.24],[403550,.32],[512450,.35],[768700,.37]],
-  hoh:[[0,.10],[17700,.12],[67450,.22],[105700,.24],[201775,.32],[256200,.35],[640600,.37]]
+  hoh:[[0,.10],[17700,.12],[67450,.22],[105700,.24],[201750,.32],[256200,.35],[640600,.37]]
 };
 const SS_RATE=.062, SS_WAGE_BASE=184500, MEDI_RATE=.0145;
 
@@ -918,7 +947,8 @@ function calcScenario(bah, stateCode, stateExempt){
   const ficaWageMonthly = base + spTaxable;
   const ss = Math.min(ficaWageMonthly, SS_WAGE_BASE/12) * SS_RATE;
   const annualWage = ficaWageMonthly*12;
-  const addlMedThresh = (filing==="mfj")?250000:200000;
+  const addlMedThresh = ADDL_MEDI_THRESHOLD[filing] != null
+    ? ADDL_MEDI_THRESHOLD[filing] : ADDL_MEDI_THRESHOLD.single;
   const medi = ficaWageMonthly*MEDI_RATE + Math.max(0, annualWage-addlMedThresh)*ADDL_MEDI_RATE/12;
 
   // state income tax — marginal, stacked, conforms to federal combat exclusion

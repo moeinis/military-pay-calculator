@@ -94,6 +94,7 @@ function boot(opts) {
     'collectState,applyState,stateNote,stateTaxAnnual,fedTaxOnAnnual,money,money2,BAH_MAX,' +
     'STATES,SPECIALS,PAY,BRACKETS,STD_DED,BAH_COL,' +
     'PAY_CAP,CZTE_CAP,BAS_ENL,BAS_OFF,SS_WAGE_BASE,YOS_LABELS,' +
+    'ADDL_MEDI_THRESHOLD,ADDL_MEDI_RATE,' +
     'BAH_W:(typeof BAH_W!=="undefined"?BAH_W:null),' +
     'BAH_WO:(typeof BAH_WO!=="undefined"?BAH_WO:null),' +
     'MHA_NAMES:(typeof MHA_NAMES!=="undefined"?MHA_NAMES:null)};';
@@ -125,7 +126,8 @@ if (app.error) { console.error('FATAL: app failed to boot -> ' + app.error); pro
 const A = app.api;
 const { calcScenario, basicPay, bahLookup, STATES, SPECIALS, BAH_W, BAH_WO,
         BAH_COL, MHA_NAMES, PAY, BRACKETS, STD_DED, PAY_CAP, CZTE_CAP,
-        BAS_ENL, BAS_OFF, SS_WAGE_BASE, YOS_LABELS } = A;
+        BAS_ENL, BAS_OFF, SS_WAGE_BASE, YOS_LABELS,
+        ADDL_MEDI_THRESHOLD, ADDL_MEDI_RATE } = A;
 
 const set = (id, v) => { app.el(id).value = String(v); };
 const chk = (id, b) => { app.el(id).checked = b; };
@@ -160,15 +162,56 @@ eq('SS wage base', SS_WAGE_BASE, 184500, 0);
 eq('standard deduction single', STD_DED.single, 16100, 0);
 eq('standard deduction MFJ', STD_DED.mfj, 32200, 0);
 eq('standard deduction HoH', STD_DED.hoh, 24150, 0);
-eq('Exec Schedule Level II cap', PAY_CAP['O-10'], 18808.20, 0);
-eq('Exec Schedule Level V cap', PAY_CAP['O-6'], 15258.30, 0);
-eq('CZTE officer cap', CZTE_CAP, 10954, 0);
+// OPM Salary Table 2026-EX: Level II $228,000, Level V $184,900, monthly = /12.
+// These were 2025 figures ($225,700 / $183,100) and were clipping correct 2026
+// pay — an O-6 past 30 years lost about $150 a month to a stale ceiling.
+eq('Exec Schedule Level II cap', PAY_CAP['O-10'], 228000 / 12, 0.01);
+eq('Exec Schedule Level V cap', PAY_CAP['O-6'], 184900 / 12, 0.01);
+ok('Level II cap is above the 2025 figure', PAY_CAP['O-10'] > 18808.20);
+ok('Level V cap is above the 2025 figure', PAY_CAP['O-6'] > 15258.30);
+// Derived, not transcribed: highest enlisted basic pay + $225 IDP.
+(() => {
+  const maxEnlisted = Math.max(...Object.keys(PAY)
+    .filter(g => g.startsWith('E-'))
+    .flatMap(g => PAY[g].filter(v => v != null)));
+  eq('CZTE officer cap', CZTE_CAP, maxEnlisted + 225, 0.01);
+  ok('CZTE cap tracks the pay table, not a written-down number',
+     CZTE_CAP > maxEnlisted);
+})();
 ok('7 federal brackets per status',
   ['single','mfj','hoh'].every(f => BRACKETS[f].length === 7));
 ok('brackets strictly increasing', Object.values(BRACKETS).every(br => {
   for (let i = 1; i < br.length; i++) if (br[i][0] <= br[i-1][0] || br[i][1] <= br[i-1][1]) return false;
   return true;
 }));
+/* Bracket floors transcribed from IRS Rev. Proc. 2025-32 sec. 3.01, Tables 1-3
+   (tax year 2026). Checked here rather than left to "looks plausible": the HoH
+   row had 201775 copied across from single, where the published figure is
+   201750. A shape check cannot see that; only the source can. */
+(() => {
+  const IRS_2026 = {
+    single: [0, 12400,  50400, 105700, 201775, 256225, 640600],
+    mfj:    [0, 24800, 100800, 211400, 403550, 512450, 768700],
+    hoh:    [0, 17700,  67450, 105700, 201750, 256200, 640600]
+  };
+  const RATES = [.10, .12, .22, .24, .32, .35, .37];
+  Object.keys(IRS_2026).forEach(f => {
+    IRS_2026[f].forEach((floor, i) => {
+      eq(`${f} bracket ${i} floor (Rev. Proc. 2025-32)`, BRACKETS[f][i][0], floor, 0);
+      eq(`${f} bracket ${i} rate`, BRACKETS[f][i][1], RATES[i], 1e-12);
+    });
+  });
+  // The two figures most likely to be "corrected" into a bug by a future editor.
+  ok('HoH 32% floor is NOT single\'s 32% floor',
+     BRACKETS.hoh[4][0] === 201750 && BRACKETS.single[4][0] === 201775);
+  ok('HoH 35% floor is NOT single\'s 35% floor',
+     BRACKETS.hoh[5][0] === 256200 && BRACKETS.single[5][0] === 256225);
+})();
+// Additional Medicare Tax thresholds are statutory (IRC 3101(b)(2)), not indexed.
+eq('Addl Medicare threshold single', ADDL_MEDI_THRESHOLD.single, 200000, 0);
+eq('Addl Medicare threshold HoH',    ADDL_MEDI_THRESHOLD.hoh,    200000, 0);
+eq('Addl Medicare threshold MFJ',    ADDL_MEDI_THRESHOLD.mfj,    250000, 0);
+eq('Addl Medicare rate',             ADDL_MEDI_RATE,             0.009,  1e-12);
 
 G('Basic pay table');
 eq('E-1 <2yr', basicPay('E-1', 0), 2407, 0);
@@ -176,8 +219,12 @@ eq('E-5 6yr', basicPay('E-5', 4), 4110, 0);
 eq('O-3 6yr', basicPay('O-3', 4), 7737, 0);
 eq('E-8 below minimum YOS falls back', basicPay('E-8', 0), 5657, 0);
 eq('W-5 below minimum YOS falls back', basicPay('W-5', 0), 10170, 0);
-eq('O-10 capped', basicPay('O-10', 10), 18808.20, 0);
-eq('O-6 capped at high YOS', basicPay('O-6', 17), 15258.30, 0);
+// At the 2026 ceiling the published O-9/O-10 rate sits just under Level II, so
+// the cap no longer binds for them — it still binds for a senior O-6.
+eq('O-10 pays the published rate', basicPay('O-10', 10), PAY['O-10'][10], 0.01);
+ok('O-10 is at or under the Level II ceiling', basicPay('O-10', 10) <= PAY_CAP['O-10'] + 0.01);
+eq('O-6 capped at high YOS', basicPay('O-6', 17), 184900 / 12, 0.01);
+ok('the O-6 cap actually binds', PAY['O-6'][17] > PAY_CAP['O-6']);
 eq('O-6 uncapped at low YOS', basicPay('O-6', 0), 8751, 0);
 (() => {
   const expected = ['E-1 <4mo','E-1','E-2','E-3','E-4','E-5','E-6','E-7','E-8','E-9',

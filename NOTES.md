@@ -104,6 +104,82 @@ named metro area; no member knows their cost group. They remain reachable by ZIP
 and a test asserts all 39 still resolve. Real county *names* (Honolulu County,
 Maui County) are kept — those are places people recognise.
 
+## Scope decision: special pays are "what I'm getting now"
+
+Settled with the reviewer, Sep 2026. There are 60+ special and incentive pay
+categories across the services, and two ways to present them:
+
+1. **What am I getting now** — the member ticks what applies and types the
+   amount. This is what is built.
+2. **What could I earn** — every category from FMR Volume 7A, amounts derived
+   from grade and branch.
+
+Option 1, deliberately. The tool answers "how far does my pay go in a different
+place," and the member has the real figures on their LES. Option 2 is a
+recruiting and career-planning tool — a reasonable thing to build one day, but a
+different product, and the reviewer's view was that it is "farther down the line
+and a much bigger build."
+
+The **Other special pay** row is what makes this work: anything not listed gets
+entered there, so no one is blocked by a missing category. Do not replace that
+with a long taxonomy without revisiting the decision above.
+
+The listed defaults are common 2026 maximums, which is a nudge toward option 2.
+They are only applied when a row is ticked, and the section says the surest
+figures are the ones on the LES — keep that wording if the defaults stay.
+
+## Constants the tests cannot actually vouch for
+
+A reviewer with a real LES found that `PAY_CAP` held 2025 Executive Schedule
+figures while the pay table already held 2026 rates, so the stale ceiling was
+clipping correct pay — about $150/month for a senior O-6, $191 for an O-9.
+
+**Every automated check passed the whole time.** The test asserted the same
+literal the app used, so it only proved the constant had not been edited by
+accident. Self-consistent, and wrong. Worth being precise about which constants
+are genuinely anchored and which are not:
+
+| Constant | How it is checked | Goes stale silently? |
+| --- | --- | --- |
+| BAS | vs DoD annual figures via CRS IF10532 | No — external anchor |
+| BAH | 18,252 cells vs DTMO source files | No — external anchor |
+| Basic pay | DoD grade averages must fall in range | Partly — a whole-table shift could pass |
+| SGLI | recomputed from rate x cover + TSGLI | No — formula, not literals |
+| `PAY_CAP` | derived from the OPM annual rate / 12 | Only if the OPM annual figure is stale |
+| `CZTE_CAP` | derived from the pay table + IDP | No — tracks the table |
+| `SS_WAGE_BASE` | literal, **cited + hand-verified vs SSA** | Yes — recheck each January |
+| `STD_DED` | literal, **cited + hand-verified vs Rev. Proc. 2025-32** | Yes — recheck each January |
+| `BRACKETS` | all 21 floors + rates asserted vs Rev. Proc. 2025-32 | Yes — recheck each January |
+| `ADDL_MEDI_THRESHOLD` | one table, statutory (IRC 3101(b)(2)) | No — not inflation-indexed |
+| `MEDI_RATE` / `SS_RATE` | asserted against own literal | Yes, but statutory and rarely change |
+
+These change every January and nothing in the suite can tell you the year
+turned. **At the yearly update, re-read the IRS Revenue Procedure and the SSA
+fact sheet and retype these by hand** — passing tests are not evidence they are
+current, only that nobody fat-fingered them since.
+
+### Audit of 2026-09, after the `PAY_CAP` miss
+
+All four flagged constants were re-read against primary sources:
+
+- `SS_WAGE_BASE` $184,500 — correct (SSA).
+- `STD_DED` 16,100 / 32,200 / 24,150 — correct (Rev. Proc. 2025-32 §3.19).
+- `BRACKETS` — **one error found.** The head-of-household 32% floor was 201,775,
+  copied from the single column; the published HoH figure is **201,750**. Fixed.
+  Single/MFJ were correct. A HoH filer above ~$201,775 taxable was undertaxed by
+  $2/year — trivially small, and exactly the kind of thing that never surfaces
+  from a reconciliation complaint, only from reading the source.
+- The Additional Medicare threshold was a bare literal duplicated at the call
+  site; it is now one table referenced from both places.
+
+The HoH row is a trap for anyone tidying this file: its 32% and 35% floors sit
+$25 below single's, which reads like a typo and is not. Two tests assert the
+gaps deliberately so a future "cleanup" fails loudly.
+
+The general rule this earned: a constant that can be derived should be derived,
+and a constant that cannot should be checked against something outside this
+repository. Asserting a literal against itself buys nothing.
+
 ## Known limitations (intentional)
 
 - BAH covers CONUS, Alaska, and Hawaii only. OCONUS/overseas uses OHA (not modeled) — the manual BAH field covers those.
