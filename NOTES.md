@@ -248,6 +248,47 @@ The general rule this earned: a constant that can be derived should be derived,
 and a constant that cannot should be checked against something outside this
 repository. Asserting a literal against itself buys nothing.
 
+## Open items at handover (September 21, 2026)
+
+Written before a period of leave, so whoever picks this up is not starting from
+an empty room. Nothing here is broken; these are decisions and unfinished
+verification, ordered by what bites first.
+
+**Needs a person, not a code change**
+
+1. **Default branch is wrong on both repos.** It points at
+   `copilot/connect-to-moeinis-github-repos`. Pages serves `main`, so the site is
+   fine, but anyone who clones lands on a branch missing months of work. Two
+   clicks in each repo's settings.
+2. **Custom domain.** `DNS-REQUEST.md` has the CNAME request ready. This is on
+   the critical path: the site is on a `github.io` address, and every week it
+   stays there while being promoted is ranking equity accruing to GitHub.
+   Settle the domain *before* anyone pushes for search indexing.
+3. **Annual update ownership.** The January refresh is documented but unassigned.
+
+**Unfinished verification**
+
+4. **Special-pay defaults not yet checked against a primary source:** ACIP 1000,
+   diving 340, hardship duty 150, SDAP 450, FSA 250, HFP/IDP 225. Two of the
+   five that *were* checked turned out wrong, so treat the remaining six as
+   suspect rather than fine. DoD FMR 7000.14-R Volume 7A is the source.
+5. **Live special-pay defaults unconfirmed in the browser.** The values were
+   verified in the repo at commit `614dbdc`; nobody has yet loaded the live page
+   and confirmed Career sea pay reads 750 rather than 805.
+6. **One LES, not many.** Every reconciliation claim in this file rests on a
+   single O-3 Navy statement. A second and third, ideally enlisted and with a
+   Traditional TSP election, would test paths that one statement never touched.
+
+**Open design questions** (see the LES reconciliation section above for detail)
+
+7. Pre-tax vs post-tax "Other monthly deductions".
+8. The basic pay table stores whole dollars where DFAS pays cents.
+
+**The habit worth keeping.** Four of the bugs fixed on the final day were found
+by a reviewer with a real pay statement or by reading a primary source — none by
+the 415 automated checks, which passed throughout. The suite protects against
+regressions. It cannot tell you a number was wrong the day it was typed in.
+
 ## Known limitations (intentional)
 
 - BAH covers CONUS, Alaska, and Hawaii only. OCONUS/overseas uses OHA (not modeled) — the manual BAH field covers those.
